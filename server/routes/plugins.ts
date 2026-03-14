@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { searchWordPressPlugins, getWordPressPlugin } from '../services/wordpress';
+import { searchWordPressPlugins, getWordPressPlugin, getWordPressReviews } from '../services/wordpress';
 
 const router = Router();
 
@@ -24,6 +24,17 @@ router.get('/:slug', async (req, res) => {
     res.json(plugin);
   } catch (err: any) {
     console.error('plugin fetch error', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get('/:slug/reviews', async (req, res) => {
+  const slug = req.params.slug;
+  try {
+    const reviews = await getWordPressReviews(slug);
+    res.json(reviews);
+  } catch (err: any) {
+    console.error('reviews fetch error', err);
     res.status(500).json({ error: err.message });
   }
 });

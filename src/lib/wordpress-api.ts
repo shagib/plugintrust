@@ -2,7 +2,6 @@
 // API Documentation: https://codex.wordpress.org/WordPress.org_API#Plugins
 
 export interface WPPlugin {
-  id: number;
   slug: string;
   name: string;
   short_description: string;
@@ -13,6 +12,7 @@ export interface WPPlugin {
   downloaded: number;
   last_updated: string;
   rating: number;
+  ratings?: Record<string, number>;
   num_ratings: number;
   installed: boolean;
   homepage: string;
@@ -21,8 +21,12 @@ export interface WPPlugin {
   donation_link: string;
   banners: { high: string; low: string };
   icons: { '1x': string; '2x': string };
+  screenshots?: Record<string, string>;
+  requires?: string;
+  tested?: string;
+  requires_php?: string;
+  support_url?: string;
 }
-
 export interface WPSearchResult {
   info: {
     page: number;
@@ -36,7 +40,7 @@ export interface WPSearchResult {
 // Convert WP plugin to our internal format
 export function transformWPPlugin(wp: WPPlugin) {
   return {
-    id: `wp-${wp.id}`,
+    id: `wp-${wp.slug}`,
     slug: wp.slug,
     name: wp.name.replace(/<[^>]*>/g, ''), // Strip HTML
     description: wp.short_description?.replace(/<[^>]*>/g, '') || wp.description?.replace(/<[^>]*>/g, '').slice(0, 200) || '',
@@ -45,6 +49,9 @@ export function transformWPPlugin(wp: WPPlugin) {
     website: wp.homepage,
     lastUpdated: wp.last_updated,
     rating: wp.rating / 20 || 0, // WP ratings are out of 100
+    ratingBreakdown: wp.ratings
+      ? Object.entries(wp.ratings).map(([stars, count]) => ({ stars: Number(stars), count }))
+      : [],
     reviewCount: wp.num_ratings || 0,
     activeInstalls: wp.downloaded || 0,
     version: wp.version,
@@ -52,8 +59,14 @@ export function transformWPPlugin(wp: WPPlugin) {
     icon: wp.icons?.['2x'] || wp.icons?.['1x'] || '',
     banner: wp.banners?.high || wp.banners?.low || '',
     tags: Object.values(wp.tags || {}),
+    features: [...new Set(Object.values(wp.tags || {}))], // Unique tags as features
     verifiedReviews: Math.floor((wp.num_ratings || 0) * 0.6), // Estimate 60% verified
     category: guessCategory(wp.tags, wp.short_description || ''),
+    requires: wp.requires,
+    tested: wp.tested,
+    requiresPHP: wp.requires_php,
+    supportUrl: wp.support_url,
+    screenshots: wp.screenshots ? Object.values(wp.screenshots) : [],
   };
 }
 
@@ -109,8 +122,10 @@ export async function getPopularPlugins(category?: string, page = 1): Promise<WP
 }
 
 // Fetch reviews for a plugin from WordPress.org
-export async function getWordPressReviews(slug: string, page = 1): Promise<any> {
-  // WordPress.org doesn't have a public reviews API
-  // We'll generate simulated review data based on plugin stats
-  return null;
+export async function getWordPressReviews(slug: string, page = 1): Promise<any[]> {
+  const response = await fetch(`/api/plugins/${encodeURIComponent(slug)}/reviews`);
+  if (!response.ok) {
+    return [];
+  }
+  return response.json();
 }

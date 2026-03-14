@@ -15,6 +15,12 @@ export interface Plugin {
   price: string;
   features: string[];
   icon: string;
+  ratingBreakdown?: { stars: number; count: number }[];
+  requires?: string;
+  tested?: string;
+  requiresPHP?: string;
+  supportUrl?: string;
+  screenshots?: string[];
 }
 
 export interface Review {
